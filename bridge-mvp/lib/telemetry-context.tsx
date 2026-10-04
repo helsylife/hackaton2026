@@ -43,6 +43,11 @@ import {
   hasOffensiveLanguage,
 } from "@/lib/conduct";
 import {
+  parseStageMarker,
+  stageMarker,
+  type InterviewStage,
+} from "@/lib/interview-progress";
+import {
   fallbackScore,
   normalizeScore,
   reviewsFor,
@@ -69,7 +74,10 @@ export type ChatMessage = {
   sender: "ai" | "candidate";
   text: string;
   kind?: "conduct";
+  stage?: InterviewStage;
 };
+
+type InterviewReply = { text: string; stage?: InterviewStage };
 
 export type RadarScores = Record<string, number>;
 
@@ -255,15 +263,22 @@ function messagesForInterview(messages: ChatMessage[]) {
     hidden.add(index);
     if (messages[index - 1]?.sender === "candidate") hidden.add(index - 1);
   });
-  return messages.filter((_, index) => !hidden.has(index));
+  return messages
+    .filter((_, index) => !hidden.has(index))
+    .map((message) =>
+      // AI vidi svoje ranije oznake faze da bi dosledno nastavio numeraciju.
+      message.sender === "ai" && message.stage !== undefined
+        ? { sender: message.sender, text: `${stageMarker(message.stage)} ${message.text}` }
+        : { sender: message.sender, text: message.text },
+    );
 }
 
 async function requestInterviewReply(
   messages: ChatMessage[],
   campaign: Campaign | null,
   profile: CandidateProfile | null,
-  fallback: () => string,
-) {
+  fallback: () => InterviewReply,
+): Promise<InterviewReply> {
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
@@ -277,12 +292,14 @@ async function requestInterviewReply(
 
     if (response.status === 503) return fallback();
     if (!response.ok) {
-      return "API nije odgovorio. Proveri OPENAI_API_KEY u .env.local i restartuj server.";
+      return {
+        text: "API nije odgovorio. Proveri OPENAI_API_KEY u .env.local i restartuj server.",
+      };
     }
 
     const data = (await response.json()) as { reply?: string };
     const reply = data.reply?.trim();
-    return reply || fallback();
+    return reply ? parseStageMarker(reply) : fallback();
   } catch {
     return fallback();
   }
@@ -526,23 +543,23 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
 
     void (async () => {
       const reply = await requestInterviewReply(history, activeCampaign, profile, () => {
+        // Bez API-ja: redom postavi zadata pitanja, pa zatvori. Nikad više od plana.
         const asked = history.filter(
           (message) => message.sender === "ai" && message.kind !== "conduct",
         ).length;
-        const planned = interviewQuestions(activeCampaign, profile)[asked];
-        if (planned?.question.trim()) return planned.question.trim();
-
-        const fallback =
-          AI_QUESTIONS[questionIndex.current % AI_QUESTIONS.length];
-        questionIndex.current += 1;
-        return fallback;
+        const planned = interviewQuestions(activeCampaign, profile)
+          .map((item) => item.question.trim())
+          .filter(Boolean);
+        const plan = planned.length > 0 ? planned : [...AI_QUESTIONS];
+        if (asked < plan.length) return { text: plan[asked], stage: asked + 1 };
+        return { text: "Hvala, to je sve što mi treba. Intervju je gotov.", stage: "done" };
       });
 
       if (id !== requestId.current) return;
 
       const next: ChatMessage[] = [
         ...chatRef.current,
-        { sender: "ai", text: reply },
+        { sender: "ai", text: reply.text, stage: reply.stage },
       ];
       chatRef.current = next;
       setSessionMessages(next);

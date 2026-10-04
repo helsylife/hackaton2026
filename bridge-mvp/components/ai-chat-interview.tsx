@@ -35,8 +35,13 @@ function stackChips(stack: string) {
 
 function StepBadge({ step }: { step: ProgressStep }) {
   return (
-    <span className="animate-in fade-in slide-in-from-top-1 text-[11px] text-emerald-300 tabular-nums duration-300">
-      +{step.delta}% · {step.reason}
+    <span
+      className={cn(
+        "animate-in fade-in slide-in-from-top-1 text-[11px] tabular-nums duration-300",
+        step.delta > 0 ? "text-emerald-300" : "text-zinc-400",
+      )}
+    >
+      {step.delta > 0 ? `+${step.delta}%` : "±0%"} · {step.reason}
     </span>
   );
 }

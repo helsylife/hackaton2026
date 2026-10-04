@@ -4,6 +4,8 @@ export type TranscriptMessage = {
   sender: "ai" | "candidate";
   text: string;
   kind?: "conduct";
+  /** Faza na koju se AI poruka odnosi: upoznavanje, redni broj pitanja ili kraj. */
+  stage?: "intro" | "done" | number;
 };
 
 export type AnswerReview = {

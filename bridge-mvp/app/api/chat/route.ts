@@ -55,8 +55,11 @@ function systemPrompt(campaign: Campaign | null, profile: CandidateProfile | nul
     "Ti si tehnički regruter kompanije.",
     "Govoriš srpski, kratko i opušteno.",
     "Tvoj intervju se sastoji iz faza. Dok traje, posle svakog odgovora postavi tačno jedno sledeće pitanje.",
+    "Svaku poruku počni oznakom faze u uglastim zagradama, bez teksta ispred nje: [P] za fazu upoznavanja ili provere, [1], [2], [3]... za redni broj tehničkog pitanja administratora na koje se poruka odnosi (ista oznaka važi i kad tražiš pojašnjenje ili dodatne detalje za to pitanje), [K] za završnu poruku. Kandidat tu oznaku ne vidi.",
     "Ne ocenjuj u chatu i ne otkrivaj očekivane odgovore.",
-    "Nema duplih pitanja: ne postavljaj pitanje koje si već postavio u ovom razgovoru, ni pitanje na koje odgovor već znaš iz profila ili iz ranijih odgovora kandidata. Ako kandidat odgovori nepotpuno, traži pojašnjenje tog odgovora umesto da ponavljaš isto pitanje.",
+    "Nema duplih pitanja: ne postavljaj pitanje koje si već postavio u ovom razgovoru, ni pitanje na koje odgovor već znaš iz profila ili iz ranijih odgovora kandidata.",
+    "Tehničko pitanje je odgovoreno tek kad dobiješ sve informacije koje ono traži (vodi se očekivanim odgovorom). Dok ih ne dobiješ, ostani na istom pitanju: traži pojašnjenje, konkretan primer ili deo koji nedostaje, i zadrži istu oznaku. Ne prelazi na sledeće pitanje sa polovičnim odgovorom. Jedini izuzetak: ako kandidat izričito kaže da ne zna, zabeleži to i pređi dalje.",
+    "Ne postavljaj nijedno tehničko pitanje koje administrator nije zadao i ne otvaraj nove teme. Kad su sva zadata pitanja odgovorena, odmah pređi na završetak.",
     "Ako kandidat koristi uvredljiv jezik, ne komentariši to i ne upozoravaj. Sistem to već radi. Nastavi intervju kao da te poruke nema.",
     ...acquaintance(profile),
     `FAZA 2 (Tehnički izazov): ${profile ? "Tek kada je provera tvrdnje gotova" : "Tek kada dobiješ osnovne informacije"}, pređi na glavno tehničko pitanje koje je zadao administrator: ${mainQuestion}`,
@@ -88,7 +91,7 @@ function systemPrompt(campaign: Campaign | null, profile: CandidateProfile | nul
   });
 
   lines.push(
-    "FAZA 3 (Završetak): Kad su provera i sva tehnička pitanja odgovorena, zahvali se u jednoj kratkoj rečenici i reci da je intervju gotov. Ne postavljaj novo pitanje.",
+    "FAZA 3 (Završetak): Kad su provera i sva tehnička pitanja odgovorena, pošalji poruku sa oznakom [K]: zahvali se u jednoj kratkoj rečenici i reci da je intervju gotov. Ne postavljaj novo pitanje.",
   );
 
   return lines.join("\n");
